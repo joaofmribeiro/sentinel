@@ -1,0 +1,32 @@
+Function:
+  Title:  Symantec Blue Coat Parser (CEF)
+  Version: '1.0.0'
+  LastUpdated: '2025-05-19'
+Category: Microsoft Sentinel Parser
+FunctionName:  Symantec Blue Coat Parser (CEF)
+FunctionAlias: SymantecBlueCoat
+FunctionQuery: 
+  CommonSecurityLog
+  | where DeviceVendor == "Blue Coat" 
+  | extend AdditionalExtensions = extract_all(@"(?P<key>\w+)=(?P<value>[a-zA-Z0-9-_:/@. ]+)", dynamic(["key","value"]), AdditionalExtensions) 
+  | mv-apply AdditionalExtensions on (
+    summarize AdditionalExtensionsParsed = make_bag(pack(tostring(AdditionalExtensions[0]), AdditionalExtensions[1]))
+  )
+  | extend RequestedURL = extract("tcp://([^/:]+)", 1, RequestURL)
+  | extend Result = tostring(AdditionalExtensionsParsed.result)
+  | extend EventID = tostring(AdditionalExtensionsParsed.eventid)
+  | extend Method = tostring(AdditionalExtensionsParsed.method)
+  | extend IP = tostring(AdditionalExtensionsParsed.ip)
+  | extend Groups = tostring(AdditionalExtensionsParsed.groups)
+  | extend SourceZoneURI = tostring(AdditionalExtensionsParsed.sourcezoneURI)
+  | extend Name = tostring(AdditionalExtensionsParsed.name)
+  | extend Categories = tostring(AdditionalExtensionsParsed.categories)
+  | extend Catdt = tostring(AdditionalExtensionsParsed.catdt)
+  | extend Country = tostring(AdditionalExtensionsParsed.country)
+  | extend Atz = tostring(AdditionalExtensionsParsed.atz)
+  | extend Agt = tostring(AdditionalExtensionsParsed.agt)
+  | extend Failures = tostring(AdditionalExtensionsParsed.failures)
+  | extend Reason = tostring(AdditionalExtensionsParsed.reason)
+  | extend Status = tostring(AdditionalExtensionsParsed.status)
+  | extend Host = tostring(AdditionalExtensionsParsed.ahost)
+  | project-away RequestURL, AdditionalExtensionsParsed, DeviceEventClassID,SourceSystem, CollectorHostName
