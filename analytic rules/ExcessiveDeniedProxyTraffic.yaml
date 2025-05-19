@@ -1,0 +1,9 @@
+name: Excessive Denied Proxy Traffic
+query: |
+  let threshold = 50;
+  SymantecBlueCoatProxy
+  | where TimeGenerated > ago(1d)
+  | where Activity == "TCP_DENIED"
+  | where Result == "DENIED"
+  | summarize StartTime = min(TimeGenerated), EndTime = max(TimeGenerated), count() by SourceIP, SourceHostName, DstIP, RequestedURL
+  | where count_ > threshold    

@@ -1,0 +1,22 @@
+name: Possible anomaly verified in SMB Behavior
+description: |
+'Use-case for excessive denied proxy bering verified from 1 day ago. It leverages the function name "SymantecBlueCoatProxy from the custom parser'
+query: |
+    let SMBPorts = dynamic(["139", "445"]);
+    let device_network_events = DeviceNetworkEvents
+    | where TimeGenerated > ago(7d)
+    | where ipv4_is_private(LocalIP) and tostring(LocalPort) has_any (SMBPorts) and LocalIP != RemoteIP
+    | summarize count() by LocalIP, RemoteIP, ActionType, DeviceName, LocalPort, MachineGroup;
+    let common_security_log = CommonSecurityLog
+    | where TimeGenerated > ago(7d)
+    | where ipv4_is_private(SourceIP) and tostring(SourcePort) has_any (SMBPorts) and SourceIP != DestinationIP;
+    device_network_events
+    | join kind=inner (
+    common_security_log
+    ) on $left.LocalIP == $right.SourceIP
+    | summarize count() by LocalIP, RemoteIP, DeviceName, LocalPort, MachineGroup, SourcePort
+    | where count_ > 50
+
+
+
+

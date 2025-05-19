@@ -1,0 +1,9 @@
+name: User Accessed Suspicious URL Categories
+description: |
+'Use-case for detection of suspicious access from end-users into categories that are suspicious observer within proxy logs. It is leveraging the Symantec Blue Coat function (custom parser'
+query: |
+  SymantecBlueCoatProxy
+  | where TimeGenerated > ago(34h)
+  | where Categories has_any ("Suspicious","phishing", "hacking")
+  | take 20
+  | project SourceIP, SourceHostName, DstIP, Categories, ApplicationName, RequestedURL, Status
