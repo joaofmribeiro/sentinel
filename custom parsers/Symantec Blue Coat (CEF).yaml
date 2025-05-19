@@ -4,8 +4,8 @@ Function:
   LastUpdated: '2025-05-19'
 Category: Microsoft Sentinel Parser
 FunctionName:  Symantec Blue Coat Parser (CEF)
-FunctionAlias: SymantecBlueCoat
-FunctionQuery: 
+FunctionAlias: SymantecBlueCoatProxy
+FunctionQuery: |
   CommonSecurityLog
   | where DeviceVendor == "Blue Coat" 
   | extend AdditionalExtensions = extract_all(@"(?P<key>\w+)=(?P<value>[a-zA-Z0-9-_:/@. ]+)", dynamic(["key","value"]), AdditionalExtensions) 
