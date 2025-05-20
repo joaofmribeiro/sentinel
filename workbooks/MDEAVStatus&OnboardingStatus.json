@@ -1,0 +1,608 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Device AV Health & Onboarding Status\n---\n\nThis workbook shows Device antivirus platform and signature versions as well as not onboarded devices that are discovered from Defender for Endpoint",
+        "style": "pills"
+      },
+      "name": "parameters - 3"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "tabStyle": "bigger",
+        "links": [
+          {
+            "id": "156823d6-c9c7-4689-84bc-ddfbdef0531f",
+            "cellValue": "TAB",
+            "linkTarget": "parameter",
+            "linkLabel": "MDE AV Report",
+            "subTarget": "MDE AV Report",
+            "style": "link"
+          },
+          {
+            "id": "64822abf-d777-40f0-a23e-c113859d81e0",
+            "cellValue": "TAB",
+            "linkTarget": "parameter",
+            "linkLabel": "MDE Onboard Status",
+            "subTarget": "MDE Onboard Status",
+            "style": "link"
+          }
+        ]
+      },
+      "name": "links - 7"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Device Antivirus Platform and Signature Information"
+      },
+      "conditionalVisibility": {
+        "parameterName": "TAB",
+        "comparison": "isEqualTo",
+        "value": "MDE AV Report"
+      },
+      "name": "text - 3"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Device Onboarding Status to Defender for Endpoint"
+      },
+      "conditionalVisibility": {
+        "parameterName": "TAB",
+        "comparison": "isEqualTo",
+        "value": "MDE Onboard Status"
+      },
+      "name": "text - 4"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "cec8b994-ce0c-4381-ae2d-83d52a30debe",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 259200000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 5184000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ]
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": {
+              "durationMs": 604800000
+            }
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters - 7"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceTvmSecureConfigurationAssessment_CL\r\n| summarize Count = dcount(DeviceName) by AVProductVersion\r\n| render piechart",
+              "size": 0,
+              "title": "Devices by AV Product Version",
+              "timeContextFromParameter": "TimeRange",
+              "exportMultipleValues": true,
+              "exportedParameters": [
+                {
+                  "fieldName": "series",
+                  "parameterName": "AVProduct",
+                  "parameterType": 1
+                }
+              ],
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "33",
+            "conditionalVisibility": {
+              "parameterName": "TAB",
+              "comparison": "isEqualTo",
+              "value": "MDE AV Report"
+            },
+            "name": "query - 0"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceTvmSecureConfigurationAssessment_CL\r\n| where todatetime(AVSigLastUpdateTime) > ago(14d)\r\n|join kind=inner(DeviceInfo) on $left.DeviceId == $right.DeviceId\r\n| where SensorHealthState != \"Active\" //less than 7 days will show imparied communications or invalid\r\n| where OnboardingStatus == \"Onboarded\"\r\n| summarize Count = dcount(DeviceName) by AVSigLastUpdateTime = format_datetime(todatetime(AVSigLastUpdateTime), 'yyyy-MM-dd [HH:mm:ss]'), DeviceName\r\n| render piechart",
+              "size": 0,
+              "title": "Devices where AV signature is not updated more than 14 days ago",
+              "exportFieldName": "series",
+              "exportParameterName": "ExportedAVSigVersion",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "33",
+            "conditionalVisibility": {
+              "parameterName": "TAB",
+              "comparison": "isEqualTo",
+              "value": "MDE AV Report"
+            },
+            "name": "query - 1"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceTvmSecureConfigurationAssessment_CL\r\n| where AVSigVersion != \"\"\r\n| summarize arg_max(TimeGenerated, *) by DeviceName\r\n| summarize Count = dcount(DeviceName) by AVSigVersion\r\n| render piechart",
+              "size": 0,
+              "title": "Devices by AV Signature Version",
+              "timeContextFromParameter": "TimeRange",
+              "exportFieldName": "series",
+              "exportParameterName": "ExportAVSigVersion",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "33",
+            "conditionalVisibility": {
+              "parameterName": "TAB",
+              "comparison": "isEqualTo",
+              "value": "MDE AV Report"
+            },
+            "name": "query - 2"
+          },
+          {
+            "type": 9,
+            "content": {
+              "version": "KqlParameterItem/1.0",
+              "parameters": [
+                {
+                  "id": "862a6115-c8ec-45df-a170-98d4e31233e8",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "AVSigVersion",
+                  "type": 2,
+                  "isRequired": true,
+                  "multiSelect": true,
+                  "quote": "'",
+                  "delimiter": ",",
+                  "query": "DeviceTvmSecureConfigurationAssessment_CL\r\n| where AVSigVersion != \"\"\r\n| distinct AVSigVersion\r\n\r\n",
+                  "typeSettings": {
+                    "additionalResourceOptions": [
+                      "value::all"
+                    ],
+                    "showDefault": false
+                  },
+                  "timeContext": {
+                    "durationMs": 604800000
+                  },
+                  "timeContextFromParameter": "TimeRange",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "value": [
+                    "value::all"
+                  ]
+                }
+              ],
+              "style": "pills",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "conditionalVisibility": {
+              "parameterName": "TAB",
+              "comparison": "isEqualTo",
+              "value": "MDE AV Report"
+            },
+            "name": "parameters - 7"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let AVProductVer = dynamic([{AVProduct}]);\r\nDeviceTvmSecureConfigurationAssessment_CL\r\n| where AVSigVersion == \"All\" or AVSigVersion in ({AVSigVersion}) or AVProductVersion in (AVProductVer)\r\n| summarize arg_max(AVSigLastUpdateTime, *) by DeviceName\r\n| project DeviceName, AVProductVersion, AVSigVersion, AVEngineVersion, AVSigLastUpdateTime = format_datetime(todatetime(AVSigLastUpdateTime), 'yyyy-MM-dd [HH:mm:ss]'), AVMode, OSPlatform\r\n| sort by DeviceName desc\r\n| take 100",
+              "size": 0,
+              "title": "MDE AV Status",
+              "timeContextFromParameter": "TimeRange",
+              "showExportToExcel": true,
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "AVMode",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Active",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Passive",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "lightBlue",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "AVSigLastUpdateTime",
+                    "sortOrder": 1
+                  }
+                ]
+              },
+              "sortBy": [
+                {
+                  "itemKey": "AVSigLastUpdateTime",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            "conditionalVisibility": {
+              "parameterName": "TAB",
+              "comparison": "isEqualTo",
+              "value": "MDE AV Report"
+            },
+            "name": "query - 6"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceTvmSecureConfigurationAssessment_CL\r\n| summarize Count = dcount(AVSigVersion) by OSPlatform\r\n| render barchart",
+              "size": 0,
+              "title": "OS Platform by AV Signature Version",
+              "timeContextFromParameter": "TimeRange",
+              "exportedParameters": [
+                {
+                  "fieldName": "series",
+                  "parameterName": "OSPlatforms",
+                  "parameterType": 7
+                }
+              ],
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "35",
+            "conditionalVisibility": {
+              "parameterName": "TAB",
+              "comparison": "isEqualTo",
+              "value": "MDE AV Report"
+            },
+            "name": "query - 2 - Copy"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceTvmSecureConfigurationAssessment_CL\r\n| where AVMode != \"\"\r\n| summarize Count = dcount(DeviceName) by AVMode\r\n| render piechart",
+              "size": 1,
+              "title": "Devices by Antivirus Mode",
+              "timeContextFromParameter": "TimeRange",
+              "exportFieldName": "series",
+              "exportParameterName": "AVMode",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart",
+              "tileSettings": {
+                "showBorder": false,
+                "titleContent": {
+                  "columnMatch": "AVMode",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "Count",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "maximumSignificantDigits": 3,
+                      "maximumFractionDigits": 2
+                    }
+                  }
+                }
+              },
+              "mapSettings": {
+                "locInfo": "LatLong",
+                "sizeSettings": "Count",
+                "sizeAggregation": "Sum",
+                "legendMetric": "Count",
+                "legendAggregation": "Sum",
+                "itemColorSettings": {
+                  "type": "heatmap",
+                  "colorAggregation": "Sum",
+                  "nodeColorField": "Count",
+                  "heatmapPalette": "greenRed"
+                }
+              }
+            },
+            "customWidth": "35",
+            "conditionalVisibility": {
+              "parameterName": "TAB",
+              "comparison": "isEqualTo",
+              "value": "MDE AV Report"
+            },
+            "name": "query - 3"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceTvmSecureConfigurationAssessment_CL\r\n| where AVMode == '{AVMode}'\r\n| project DeviceName, AVMode\r\n| take 5\r\n",
+              "size": 0,
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "AVMode",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Active",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Passive",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Unknown",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "lightBlue",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "sortBy": []
+            },
+            "customWidth": "25",
+            "name": "query - 8"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "TAB",
+        "comparison": "isEqualTo",
+        "value": "MDE AV Report"
+      },
+      "name": "group - 7"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\r\n| summarize Count = dcount(DeviceName) by OnboardingStatus\r\n| render piechart\r\n",
+              "size": 0,
+              "title": "Devices by Onboarding Status",
+              "timeContextFromParameter": "TimeRange",
+              "exportMultipleValues": true,
+              "exportedParameters": [
+                {
+                  "fieldName": "series",
+                  "parameterName": "onboardstatus"
+                }
+              ],
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "33",
+            "conditionalVisibility": {
+              "parameterName": "TAB",
+              "comparison": "isEqualTo",
+              "value": "MDE Onboard Status"
+            },
+            "name": "query - 0"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\r\n| where OnboardingStatus != \"Onboarded\"\r\n| where OSPlatform != \"\"\r\n| summarize Count = dcount(DeviceName) by OSPlatform\r\n| render piechart",
+              "size": 0,
+              "title": "Devices not Onboarded by OS",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart",
+              "graphSettings": {
+                "type": 0,
+                "topContent": {
+                  "columnMatch": "OSPlatform",
+                  "formatter": 1
+                },
+                "centerContent": {
+                  "columnMatch": "Count",
+                  "formatter": 1,
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "maximumSignificantDigits": 3,
+                      "maximumFractionDigits": 2
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "33",
+            "conditionalVisibility": {
+              "parameterName": "TAB",
+              "comparison": "isEqualTo",
+              "value": "MDE Onboard Status"
+            },
+            "name": "query - 2"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\r\n| where OnboardingStatus != \"Onboarded\"\r\n| where Vendor != \"\"\r\n| summarize Count = dcount(DeviceName) by Vendor\r\n| render piechart",
+              "size": 0,
+              "title": "Devices not Onboarded by Vendor",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "33",
+            "conditionalVisibility": {
+              "parameterName": "TAB",
+              "comparison": "isEqualTo",
+              "value": "MDE Onboard Status"
+            },
+            "name": "query - 2"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let onboardstatus = dynamic([{onboardstatus}]);\r\nDeviceInfo\r\n| where OnboardingStatus has_any (onboardstatus)\r\n| project Vendor, DeviceType, DeviceSubtype, DeviceName, DeviceId, OSBuild, OSPlatform, OSVersion, OnboardingStatus, SensorHealthState, ExposureLevel\r\n",
+              "size": 0,
+              "timeContextFromParameter": "TimeRange",
+              "showExportToExcel": true,
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "OnboardingStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "representation": null,
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Unsupported",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Can be onboarded",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Insufficient info",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Onboarded",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": null,
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true
+              }
+            },
+            "conditionalVisibility": {
+              "parameterName": "TAB",
+              "comparison": "isEqualTo",
+              "value": "MDE Onboard Status"
+            },
+            "name": "query - 7"
+          }
+        ]
+      },
+      "name": "group - 7"
+    }
+  ],
+  "fallbackResourceIds": [
+    "/subscriptions/{subscriptionid}/resourcegroups/{resourcegroupID}/providers/microsoft.operationalinsights/workspaces/{workspacename}"
+  ],
+  "fromTemplateId": "sentinel-UserWorkbook",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}
