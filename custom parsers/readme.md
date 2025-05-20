@@ -1,1 +1,1 @@
-**Folder dedicated to parsers and functions for Sentinel solutions**
+Folder dedicated to parsers and functions for Sentinel solutions
