@@ -28,4 +28,102 @@ Workbook allows to select from pie chart signature versions or withib the table 
 
 
 
+Custom table is required for **DeviceTvmSecureConfigurationAssessment**.
+**Schemma below:**
 
+$tableParams = @'
+{
+"properties": {
+    "schema": {
+        "name": "DeviceTvmSecureConfigurationAssessment_CL",
+        "columns": [
+            {
+                "name": "DeviceId",
+                "type": "string",
+                "description": "Unique identifier for the device in the service"
+            },
+            {
+                "name": "DeviceName",
+                "type": "string",
+                "description": "Fully qualified domain name (FQDN) of the device"
+            },
+            {
+                "name": "OSPlatform",
+                "type": "string",
+                "description": "Platform of the operating system running on the device. Indicates specific operating systems, including variations within the same family, such as Windows 11, Windows 10, and Windows 7."
+            },
+            {
+                "name": "TimeGenerated",
+                "type": "datetime",
+                "isDefaultDisplay": true,
+                "description": "The timestamp (UTC) reflecting the time in which the event was generated."
+            },
+            {
+                "name": "ConfigurationId",
+                "type": "string",
+                "description": "Unique identifier for a specific configuration"
+            },
+            {
+                "name": "ConfigurationCategory",
+                "type": "string",
+                "description": "Category or grouping to which the configuration belongs: Application, OS, Network, Accounts, Security controls"
+            },
+            {
+                "name": "ConfigurationSubcategory",
+                "type": "string",
+                "description": "Subcategory or subgrouping to which the configuration belongs. In many cases, string describes specific capabilities or features."
+            },
+            {
+                "name": "ConfigurationImpact",
+                "type": "string",
+                "description": "Rated impact of the configuration to the overall configuration score (1-10)"
+            },
+            {
+                "name": "IsCompliant",
+                "type": "string",
+                "description": "Indicates whether the configuration or policy is properly configured"
+            },
+            {
+                "name": "IsApplicable",
+                "type": "string",
+                "description": "Indicates whether the configuration or policy applies to the device"
+            },
+            {
+                "name": "Context",
+                "type": "string",
+                "description": "Additional contextual information about the configuration or policy"
+            },
+            {
+                "name": "IsExpectedUseImpact",
+                "type": "string",
+                "description": "Indicates whether there will be user impact if the configuration or policy is applied"
+            },
+			{
+                "name": "AVSigVerion",
+                "type": "string",
+                "description": "Indicates AV signature update version"
+            },
+			{
+                "name": "AVEngineVersion",
+                "type": "string",
+                "description": "Indicates AV engine version"
+            },
+			{
+                "name": "AVSigLastUpdateTime",
+                "type": "string",
+                "description": "Indicates last signature update time"
+            },
+			{
+                "name": "AVProductVersion",
+                "type": "string",
+                "description": "Indicates AV Product version"
+            },
+			{
+                "name": "AVMode",
+                "type": "string",
+                "description": "Indicates whether AV is active or passive mode"
+            }
+        ]
+    }
+}
+'@
