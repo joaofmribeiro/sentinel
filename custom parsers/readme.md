@@ -5,7 +5,7 @@ Solution in content hub, expecting syslog:
 
 ![image](https://github.com/user-attachments/assets/09ec03c0-fd07-4251-a38e-9d756c952d71)
 
-Parser defined:
+Parser defined in this solution (syslog):
 
 let forwarder_host_names = dynamic(["datasource"]);
 let datasource = union isfuzzy=true  (datatable(Source: string)[]), (_GetWatchlist('ASimSourceType') | where SearchKey == 'SymantecProxySG' | project Source);
@@ -22,12 +22,11 @@ Syslog
 | project-away Part2, Part3, UserAgent
 
 
-Then both analytic rules need to be updated:
+Then both analytic rules need to be updated to support the CEF formatted logs:
 - User Accessed Suspicious URL Categories
 - Excessive Denied Proxy
+--> Updated versions of these Analytic Rules via CEF Parser: https://github.com/joaofmribeiro/sentinel/tree/main/analytic%20rules
 
-Updated versions of these Analytic Rules via CEF Parser: https://github.com/joaofmribeiro/sentinel/tree/main/analytic%20rules
-
-Parser KQL via CEF within this current folder. 
+Parser KQL via CEF within this current folder "Symantec Blye Coat (CEF).yaml
 
 Sure these can be maybe updated or edited to fill the needs, however can be a good start :)
