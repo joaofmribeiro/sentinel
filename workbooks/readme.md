@@ -16,6 +16,8 @@ Data from TVMSecureConfigurationAssessment is obtained via KQL Query from Logic 
 
 **Workbook screenshots:**
 
+Workbook allows to select from pie chart signature versions or withib the table in dropdown option, to select as well multiple signature versions to get full picture report. It allows to export table data as well.
+
 ![image](https://github.com/user-attachments/assets/4cae3dfe-e3f5-472d-a1d1-13388f298b7d)
 
 
