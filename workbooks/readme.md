@@ -1,6 +1,6 @@
 Workbook that leverages the following tables:
 - DeviceTvmSecureConfigurationAssessment; 
-- DeviceEvents (ingested via Defender XDR Data Connector) in Sentinel;
+- DeviceInfo (ingested via Defender XDR Data Connector) in Sentinel;
 
 
 Data from TVMSecureConfigurationAssessment is obtained via KQL Query from Logic APP and then written into a custom table within log analytics workspace from Sentinel. 
