@@ -1,5 +1,5 @@
 Workbook that leverages the following tables:
-- DeviceTvmSecureConfigurationAssessment 
+- DeviceTvmSecureConfigurationAssessment; 
 - DeviceEvents (ingested via Defender XDR Data Connector) in Sentinel;
 
 
