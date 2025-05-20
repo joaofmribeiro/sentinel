@@ -144,8 +144,9 @@ Logic App Flow:
 					"name":"Falcon_host_link",
 					"type":"string"
 				}
-            ]
-        }
-    }
-}
+            			]
+        		}
+    		}
+	}
+ 	'@
 
