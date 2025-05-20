@@ -1,0 +1,1154 @@
+
+{
+    "$schema":  "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion":  "1.0.0.0",
+    "metadata":  {
+        "title":  "",
+        "description":  "",
+        "prerequisites":  "",
+        "postDeployment":  [
+        ],
+        "prerequisitesDeployTemplateFile":  "",
+        "lastUpdateTime":  "",
+        "entities":  [
+        ],
+        "tags":  [
+        ],
+        "support":  {
+            "tier":  "community",
+            "armtemplate":  "Generated from https://github.com/Azure/Azure-Sentinel/tree/master/Tools/Playbook-ARM-Template-Generator"
+        },
+        "author":  {
+            "name":  ""
+        }
+    },
+    "parameters":  {
+        "PlaybookName":  {
+            "defaultValue":  "Crowdstrike-CallAPIAlertEntities",
+            "type":  "string"
+        }
+    },
+    "variables":  {
+        "EventhubsConnectionName":  "[concat('Eventhubs-', parameters('PlaybookName'))]"
+    },
+    "resources":  [
+        {
+            "properties":  {
+                "provisioningState":  "Succeeded",
+                "state":  "Enabled",
+                "definition":  {
+                    "$schema":  "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion":  "1.0.0.0",
+                    "parameters":  {
+                        "$connections":  {
+                            "defaultValue":  {
+                            },
+                            "type":  "Object"
+                        }
+                    },
+                    "triggers":  {
+                        "When_a_HTTP_request_is_received":  {
+                            "type":  "Request",
+                            "kind":  "Http"
+                        }
+                    },
+                    "actions":  {
+                        "HTTP_-_Get_CS_Alerts":  {
+                            "runAfter":  {
+                                "Compose_-_Token":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "Http",
+                            "inputs":  {
+                                "uri":  "https://api.eu-1.crowdstrike.com/alerts/queries/alerts/v2",
+                                "method":  "GET",
+                                "headers":  {
+                                    "Accept":  "application/json",
+                                    "Authorization":  "bearer @{outputs('Compose_-_Token')}"
+                                }
+                            },
+                            "runtimeConfiguration":  {
+                                "contentTransfer":  {
+                                    "transferMode":  "Chunked"
+                                }
+                            }
+                        },
+                        "HTTP_-_Get_Access_Token":  {
+                            "runAfter":  {
+                                "Initialize_variable_-_base64":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "Http",
+                            "inputs":  {
+                                "uri":  "https://api.eu-1.crowdstrike.com/oauth2/token",
+                                "method":  "POST",
+                                "headers":  {
+                                    "Accept":  "application/json",
+                                    "Content-Type":  "application/x-www-form-urlencoded"
+                                },
+                                "body":  "@variables('base64')"
+                            },
+                            "runtimeConfiguration":  {
+                                "contentTransfer":  {
+                                    "transferMode":  "Chunked"
+                                }
+                            }
+                        },
+                        "Parse_JSON_-_Access_Token":  {
+                            "runAfter":  {
+                                "HTTP_-_Get_Access_Token":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "ParseJson",
+                            "inputs":  {
+                                "content":  "@body('HTTP_-_Get_Access_Token')",
+                                "schema":  {
+                                    "properties":  {
+                                        "access_token":  {
+                                            "type":  "string"
+                                        },
+                                        "expires_in":  {
+                                            "type":  "integer"
+                                        },
+                                        "ext_expires_in":  {
+                                            "type":  "integer"
+                                        },
+                                        "token_type":  {
+                                            "type":  "string"
+                                        }
+                                    },
+                                    "type":  "object"
+                                }
+                            }
+                        },
+                        "Initialize_variable_-_clientid":  {
+                            "runAfter":  {
+                            },
+                            "type":  "InitializeVariable",
+                            "inputs":  {
+                                "variables":  [
+                                    {
+                                        "name":  "clientid",
+                                        "type":  "string",
+                                        "value":  ""
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_-_client_secret":  {
+                            "runAfter":  {
+                                "Initialize_variable_-_clientid":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "InitializeVariable",
+                            "inputs":  {
+                                "variables":  [
+                                    {
+                                        "name":  "clientsecret",
+                                        "type":  "string",
+                                        "value":  ""
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_-_base64":  {
+                            "runAfter":  {
+                                "Initialize_variable_-_client_secret":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "InitializeVariable",
+                            "inputs":  {
+                                "variables":  [
+                                    {
+                                        "name":  "base64",
+                                        "type":  "string",
+                                        "value":  "client_id=@{variables('clientid')}\u0026client_secret=@{variables('clientsecret')}\u0026grant_type=client_credentials"
+                                    }
+                                ]
+                            }
+                        },
+                        "Compose_-_Token":  {
+                            "runAfter":  {
+                                "Parse_JSON_-_Access_Token":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "Compose",
+                            "inputs":  "@body('Parse_JSON_-_Access_Token')?['access_token']"
+                        },
+                        "Initialize_variable_-_composite_ids":  {
+                            "runAfter":  {
+                                "Parse_JSON_-_CS_Alerts":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "InitializeVariable",
+                            "inputs":  {
+                                "variables":  [
+                                    {
+                                        "name":  "composite_ids",
+                                        "type":  "string",
+                                        "value":  "composite_ids"
+                                    }
+                                ]
+                            }
+                        },
+                        "Parse_JSON_-_Alerts_Entities":  {
+                            "runAfter":  {
+                                "HTTP_-_Get_CS_Alerts_Entities":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "ParseJson",
+                            "inputs":  {
+                                "content":  "@body('HTTP_-_Get_CS_Alerts_Entities')",
+                                "schema":  {
+                                    "type":  "object",
+                                    "properties":  {
+                                        "meta":  {
+                                            "type":  "object",
+                                            "properties":  {
+                                                "query_time":  {
+                                                    "type":  "number"
+                                                },
+                                                "writes":  {
+                                                    "type":  "object",
+                                                    "properties":  {
+                                                        "resources_affected":  {
+                                                            "type":  "integer"
+                                                        }
+                                                    }
+                                                },
+                                                "powered_by":  {
+                                                    "type":  "string"
+                                                },
+                                                "trace_id":  {
+                                                    "type":  "string"
+                                                }
+                                            }
+                                        },
+                                        "resources":  {
+                                            "type":  "array",
+                                            "items":  {
+                                                "type":  "object",
+                                                "properties":  {
+                                                    "agent_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "aggregate_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "cid":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "composite_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "confidence":  {
+                                                        "type":  "integer"
+                                                    },
+                                                    "context_timestamp":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "crawled_timestamp":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "created_timestamp":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "data_domains":  {
+                                                        "type":  "array",
+                                                        "items":  {
+                                                            "type":  "string"
+                                                        }
+                                                    },
+                                                    "description":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "display_name":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "end_time":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "falcon_host_link":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "name":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "objective":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "pattern_id":  {
+                                                        "type":  "integer"
+                                                    },
+                                                    "poly_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "product":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "scenario":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "seconds_to_resolved":  {
+                                                        "type":  "integer"
+                                                    },
+                                                    "seconds_to_triaged":  {
+                                                        "type":  "integer"
+                                                    },
+                                                    "severity":  {
+                                                        "type":  "integer"
+                                                    },
+                                                    "severity_name":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "show_in_ui":  {
+                                                        "type":  "boolean"
+                                                    },
+                                                    "source_account_domain":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "source_account_name":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "source_account_object_guid":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "source_account_object_sid":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "source_account_sam_account_name":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "source_account_upn":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "source_endpoint_account_object_guid":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "source_endpoint_host_name":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "source_endpoint_sensor_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "source_products":  {
+                                                        "type":  "array",
+                                                        "items":  {
+                                                            "type":  "string"
+                                                        }
+                                                    },
+                                                    "source_vendors":  {
+                                                        "type":  "array",
+                                                        "items":  {
+                                                            "type":  "string"
+                                                        }
+                                                    },
+                                                    "start_time":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "status":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "tactic":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "tactic_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "technique":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "technique_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "timestamp":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "type":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "updated_timestamp":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "user_name":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "source_endpoint_account_object_sid":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "activity_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "rpc_op_classification":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "source_endpoint_address_ip4":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "source_endpoint_ip_address":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "target_account_name":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "target_domain_controller_host_name":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "target_domain_controller_object_guid":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "target_domain_controller_object_sid":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "target_endpoint_account_object_guid":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "target_endpoint_account_object_sid":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "target_endpoint_host_name":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "target_endpoint_sensor_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "target_service_access_identifier":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "active_directory_authentication_method":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "alert_attributes":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "protocol_anomaly_classification":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "protocol_anomaly_classification_list":  {
+                                                        "type":  "array",
+                                                        "items":  {
+                                                            "type":  "string"
+                                                        }
+                                                    },
+                                                    "most_recent_activity_time_stamp":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "preceding_activity_time_stamp":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "alleged_filetype":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "cloud_indicator":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "cmdline":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "control_graph_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "device":  {
+                                                        "type":  "object",
+                                                        "properties":  {
+                                                            "agent_load_flags":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "agent_local_time":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "agent_version":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "bios_manufacturer":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "bios_version":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "cid":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "config_id_base":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "config_id_build":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "config_id_platform":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "device_id":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "external_ip":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "first_seen":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "groups":  {
+                                                                "type":  "array",
+                                                                "items":  {
+                                                                    "type":  "string"
+                                                                }
+                                                            },
+                                                            "hostinfo":  {
+                                                                "type":  "object",
+                                                                "properties":  {
+                                                                    "active_directory_dn_display":  {
+                                                                        "type":  "array",
+                                                                        "items":  {
+                                                                            "type":  "string"
+                                                                        }
+                                                                    },
+                                                                    "domain":  {
+                                                                        "type":  "string"
+                                                                    }
+                                                                }
+                                                            },
+                                                            "hostname":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "last_seen":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "local_ip":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "mac_address":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "machine_domain":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "major_version":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "minor_version":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "modified_timestamp":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "os_version":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "ou":  {
+                                                                "type":  "array",
+                                                                "items":  {
+                                                                    "type":  "string"
+                                                                }
+                                                            },
+                                                            "platform_id":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "platform_name":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "pod_labels":  {
+                                                            },
+                                                            "product_type":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "product_type_desc":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "site_name":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "status":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "system_manufacturer":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "system_product_name":  {
+                                                                "type":  "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "email_sent":  {
+                                                        "type":  "boolean"
+                                                    },
+                                                    "filename":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "filepath":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "global_prevalence":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "grandparent_details":  {
+                                                        "type":  "object",
+                                                        "properties":  {
+                                                            "cmdline":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "filename":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "filepath":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "local_process_id":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "md5":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "process_graph_id":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "process_id":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "sha256":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "timestamp":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "user_graph_id":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "user_id":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "user_name":  {
+                                                                "type":  "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "indicator_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "ioc_context":  {
+                                                        "type":  "array"
+                                                    },
+                                                    "local_prevalence":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "local_process_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "logon_domain":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "md5":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "parent_details":  {
+                                                        "type":  "object",
+                                                        "properties":  {
+                                                            "cmdline":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "filename":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "filepath":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "local_process_id":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "md5":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "process_graph_id":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "process_id":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "sha256":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "timestamp":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "user_graph_id":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "user_id":  {
+                                                                "type":  "string"
+                                                            },
+                                                            "user_name":  {
+                                                                "type":  "string"
+                                                            }
+                                                        }
+                                                    },
+                                                    "parent_process_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "pattern_disposition":  {
+                                                        "type":  "integer"
+                                                    },
+                                                    "pattern_disposition_description":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "pattern_disposition_details":  {
+                                                        "type":  "object",
+                                                        "properties":  {
+                                                            "blocking_unsupported_or_disabled":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "bootup_safeguard_enabled":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "containment_file_system":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "critical_process_disabled":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "detect":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "fs_operation_blocked":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "handle_operation_downgraded":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "inddet_mask":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "indicator":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "kill_action_failed":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "kill_parent":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "kill_process":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "kill_subprocess":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "mfa_required":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "operation_blocked":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "policy_disabled":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "prevention_provisioning_enabled":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "process_blocked":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "quarantine_file":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "quarantine_machine":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "registry_operation_blocked":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "response_action_already_applied":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "response_action_failed":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "response_action_triggered":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "rooting":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "sensor_only":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "suspend_parent":  {
+                                                                "type":  "boolean"
+                                                            },
+                                                            "suspend_process":  {
+                                                                "type":  "boolean"
+                                                            }
+                                                        }
+                                                    },
+                                                    "platform":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "process_end_time":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "process_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "process_start_time":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "sha1":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "sha256":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "tree_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "tree_root":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "triggering_process_graph_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "user_id":  {
+                                                        "type":  "string"
+                                                    },
+                                                    "user_principal":  {
+                                                        "type":  "string"
+                                                    }
+                                                },
+                                                "required":  [
+                                                    "aggregate_id",
+                                                    "cid",
+                                                    "composite_id",
+                                                    "confidence",
+                                                    "context_timestamp",
+                                                    "crawled_timestamp",
+                                                    "created_timestamp",
+                                                    "data_domains",
+                                                    "description",
+                                                    "display_name",
+                                                    "falcon_host_link",
+                                                    "id",
+                                                    "name",
+                                                    "objective",
+                                                    "pattern_id",
+                                                    "poly_id",
+                                                    "product",
+                                                    "scenario",
+                                                    "seconds_to_resolved",
+                                                    "seconds_to_triaged",
+                                                    "severity",
+                                                    "severity_name",
+                                                    "show_in_ui",
+                                                    "source_products",
+                                                    "source_vendors",
+                                                    "status",
+                                                    "tactic",
+                                                    "tactic_id",
+                                                    "technique",
+                                                    "technique_id",
+                                                    "timestamp",
+                                                    "type",
+                                                    "updated_timestamp"
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "Parse_JSON_-_CS_Alerts":  {
+                            "runAfter":  {
+                                "HTTP_-_Get_CS_Alerts":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "ParseJson",
+                            "inputs":  {
+                                "content":  "@body('HTTP_-_Get_CS_Alerts')",
+                                "schema":  {
+                                    "type":  "object",
+                                    "properties":  {
+                                        "meta":  {
+                                            "type":  "object",
+                                            "properties":  {
+                                                "query_time":  {
+                                                    "type":  "number"
+                                                },
+                                                "pagination":  {
+                                                    "type":  "object",
+                                                    "properties":  {
+                                                        "offset":  {
+                                                            "type":  "integer"
+                                                        },
+                                                        "limit":  {
+                                                            "type":  "integer"
+                                                        },
+                                                        "total":  {
+                                                            "type":  "integer"
+                                                        }
+                                                    }
+                                                },
+                                                "writes":  {
+                                                    "type":  "object",
+                                                    "properties":  {
+                                                        "resources_affected":  {
+                                                            "type":  "integer"
+                                                        }
+                                                    }
+                                                },
+                                                "powered_by":  {
+                                                    "type":  "string"
+                                                },
+                                                "trace_id":  {
+                                                    "type":  "string"
+                                                }
+                                            }
+                                        },
+                                        "resources":  {
+                                            "type":  "array",
+                                            "items":  {
+                                                "type":  "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "HTTP_-_Get_CS_Alerts_Entities":  {
+                            "runAfter":  {
+                                "Initialize_variable_-_composite_ids":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "Http",
+                            "inputs":  {
+                                "uri":  "https://api.eu-1.crowdstrike.com/alerts/entities/alerts/v2",
+                                "method":  "POST",
+                                "headers":  {
+                                    "Accept":  "application/json",
+                                    "Authorization":  "bearer @{outputs('Compose_-_Token')}",
+                                    "Content-Type":  "application/json"
+                                },
+                                "body":  {
+                                    "composite_ids":  "@body('Parse_JSON_-_CS_Alerts')?['resources']"
+                                }
+                            },
+                            "runtimeConfiguration":  {
+                                "contentTransfer":  {
+                                    "transferMode":  "Chunked"
+                                }
+                            }
+                        },
+                        "Initialize_variable_-_DCE_ID":  {
+                            "runAfter":  {
+                                "Parse_JSON_-_Alerts_Entities":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "InitializeVariable",
+                            "inputs":  {
+                                "variables":  [
+                                    {
+                                        "name":  "DCE-ID",
+                                        "type":  "string"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_-_DCR_ImmutableID":  {
+                            "runAfter":  {
+                                "Initialize_variable_-_DCE_ID":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "InitializeVariable",
+                            "inputs":  {
+                                "variables":  [
+                                    {
+                                        "name":  "DCR-ID",
+                                        "type":  "string"
+                                    }
+                                ]
+                            }
+                        },
+                        "Initialize_variable_-_DCR_Stream":  {
+                            "runAfter":  {
+                                "Initialize_variable_-_DCR_ImmutableID":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "InitializeVariable",
+                            "inputs":  {
+                                "variables":  [
+                                    {
+                                        "name":  "DCR-STREAM",
+                                        "type":  "string"
+                                    }
+                                ]
+                            }
+                        },
+                        "For_each_-_Alert_Entities_long":  {
+                            "foreach":  "@body('Parse_JSON_-_Alerts_Entities')?['resources']",
+                            "actions":  {
+                                "Compose_-_Long_Version":  {
+                                    "type":  "Compose",
+                                    "inputs":  [
+                                        {
+                                            "TimeGenerated":  "@{item()?['created_timestamp']}",
+                                            "Display_name":  "@{item()?['display_name']}",
+                                            "Name":  "@{item()?['name']}",
+                                            "Description":  "@{item()?['description']}",
+                                            "Confidence":  "@{item()?['confidence']}",
+                                            "Tactic":  "@{item()?['tactic']}",
+                                            "Technique":  "@{item()?['technique']}",
+                                            "Product":  "@{item()?['product']}",
+                                            "AlertSeverity":  "@{item()?['severity']}",
+                                            "Source_account_domain":  "@{item()?['source_account_domain']}",
+                                            "Source_account_name":  "@{item()?['source_account_name']}",
+                                            "Source_endpoint_host_name":  "@{item()?['source_endpoint_host_name']}",
+                                            "Source_endpoint_ip_address":  "@{item()?['source_endpoint_ip_address']}",
+                                            "Target_account_name":  "@{item()?['target_account_name']}",
+                                            "Target_endpoint_host_name":  "@{item()?['target_endpoint_host_name']}",
+                                            "Cmdline":  "@{item()?['cmdline']}",
+                                            "Filename":  "@{item()?['filename']}",
+                                            "Filepath":  "@{item()?['filepath']}",
+                                            "Md5":  "@{item()?['grandparent_details']?['md5']}",
+                                            "Sha256":  "@{item()?['grandparent_details']?['sha256']}"
+                                        }
+                                    ]
+                                },
+                                "Send_event_-_CS_Long_version":  {
+                                    "runAfter":  {
+                                        "Compose_-_Short_Version":  [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type":  "ApiConnection",
+                                    "inputs":  {
+                                        "host":  {
+                                            "connection":  {
+                                                "name":  "@parameters('$connections')['eventhubs']['connectionId']"
+                                            }
+                                        },
+                                        "method":  "post",
+                                        "body":  {
+                                            "ContentData":  "@base64(outputs('Compose_-_Long_Version'))"
+                                        },
+                                        "path":  "/@{encodeURIComponent('am-crowdstrikealertentities')}/events"
+                                    }
+                                },
+                                "HTTP_-_Short_Version_to_Custom_Table_in_Sentinel":  {
+                                    "runAfter":  {
+                                        "Compose_-_Short_Version":  [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type":  "Http",
+                                    "inputs":  {
+                                        "uri":  "@{variables('DCE-ID')}/dataCollectionRules/@{variables('DCR-ID')}/streams/@{variables('DCR-STREAM')}?api-version=2023-01-01",
+                                        "method":  "POST",
+                                        "headers":  {
+                                            "Content-Type":  "application/json"
+                                        },
+                                        "body":  "@outputs('Compose_-_Short_Version')"
+                                    },
+                                    "runtimeConfiguration":  {
+                                        "contentTransfer":  {
+                                            "transferMode":  "Chunked"
+                                        }
+                                    }
+                                },
+                                "Compose_-_Short_Version":  {
+                                    "runAfter":  {
+                                        "Compose_-_Long_Version":  [
+                                            "Succeeded"
+                                        ]
+                                    },
+                                    "type":  "Compose",
+                                    "inputs":  [
+                                        {
+                                            "TimeGenerated":  "@{item()?['created_timestamp']}",
+                                            "Display_name":  "@{item()?['display_name']}",
+                                            "Name":  "@{item()?['name']}",
+                                            "Description":  "@{item()?['description']}",
+                                            "Confidence":  "@{item()?['confidence']}",
+                                            "Tactic":  "@{item()?['tactic']}",
+                                            "Technique":  "@{item()?['technique']}",
+                                            "Product":  "@{item()?['product']}",
+                                            "AlertSeverity":  "@{item()?['severity']}",
+                                            "Source_account_domain":  "@{item()?['source_account_domain']}",
+                                            "Source_account_name":  "@{item()?['source_account_name']}",
+                                            "Source_endpoint_host_name":  "@{item()?['source_endpoint_host_name']}"
+                                        }
+                                    ]
+                                }
+                            },
+                            "runAfter":  {
+                                "Initialize_variable_-_DCR_Stream":  [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type":  "Foreach"
+                        }
+                    },
+                    "outputs":  {
+                    }
+                },
+                "parameters":  {
+                    "$connections":  {
+                        "value":  {
+                            "eventhubs":  {
+                                "connectionId":  "[resourceId('Microsoft.Web/connections', variables('EventhubsConnectionName'))]",
+                                "connectionName":  "[variables('EventhubsConnectionName')]",
+                                "id":  "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Eventhubs')]",
+                                "connectionProperties":  {
+                                    "authentication":  {
+                                        "type":  "ManagedServiceIdentity"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "name":  "[parameters('PlaybookName')]",
+            "type":  "Microsoft.Logic/workflows",
+            "location":  "[resourceGroup().location]",
+            "identity":  {
+                "type":  "SystemAssigned"
+            },
+            "tags":  {
+                "hidden-SentinelTemplateName":  "Crowdstrike-CallAPIAlertEntities",
+                "hidden-SentinelTemplateVersion":  "1.0"
+            },
+            "apiVersion":  "2017-07-01",
+            "dependsOn":  [
+                "[resourceId('Microsoft.Web/connections', variables('EventhubsConnectionName'))]"
+            ]
+        },
+        {
+            "type":  "Microsoft.Web/connections",
+            "apiVersion":  "2016-06-01",
+            "name":  "[variables('EventhubsConnectionName')]",
+            "location":  "[resourceGroup().location]",
+            "kind":  "V1",
+            "properties":  {
+                "displayName":  "[variables('EventhubsConnectionName')]",
+                "customParameterValues":  {
+                },
+                "parameterValueType":  "Alternative",
+                "api":  {
+                    "id":  "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/Eventhubs')]"
+                }
+            }
+        }
+    ]
+}
